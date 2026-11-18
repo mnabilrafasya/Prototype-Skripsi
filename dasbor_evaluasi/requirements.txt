@@ -1,0 +1,7 @@
+# SEMENTARA (Tahap 1). Hanya paket yang sudah terpasang dan teruji di .venv
+# (Python 3.12.5, Windows). Paket lain (streamlit, torch, torchvision,
+# scikit-learn, statsmodels, scipy, plotly, matplotlib, opencv-python-headless,
+# pillow) ditambahkan beserta versinya setelah dipasang dan diuji di Tahap 2 dan
+# seterusnya. Indeks PyTorch CPU akan ditambahkan bersama torch.
+numpy==2.5.5
+pandas==3.1.1

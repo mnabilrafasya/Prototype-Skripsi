@@ -1,0 +1,4 @@
+method,n_trials,total_time_sec
+grid_search,48,8832.785488128662
+random_search,48,8942.092500686646
+optuna_tpe,48,8652.310800075531

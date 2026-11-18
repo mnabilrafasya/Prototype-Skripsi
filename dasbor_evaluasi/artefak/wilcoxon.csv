@@ -1,0 +1,4 @@
+Pasangan,A menang / B menang / seri,Rata-rata selisih F1 (A-B),p-value,p-value (Holm),Signifikan (alpha=0.05)
+grid_search vs random_search,3 / 7 / 0,-0.0039,0.4922,1.0,tidak
+grid_search vs optuna_tpe,5 / 5 / 0,-0.002,0.6953,1.0,tidak
+random_search vs optuna_tpe,5 / 5 / 0,0.0019,0.625,1.0,tidak

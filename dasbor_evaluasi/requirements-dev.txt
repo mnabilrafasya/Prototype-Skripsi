@@ -1,0 +1,3 @@
+-r requirements.txt
+pytest==9.2.0
+# psutil (pengukuran memori, hanya tools/) ditambahkan saat dipasang dan diuji di Tahap 2.

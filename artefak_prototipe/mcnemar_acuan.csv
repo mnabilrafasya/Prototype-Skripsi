@@ -1,0 +1,4 @@
+Pasangan,Sama-sama benar,"A benar, B salah","A salah, B benar",Sama-sama salah,Selisih akurasi (A-B),p-value,p-value (Holm),Signifikan (alpha=0.05)
+Grid Search vs Random Search,1453,23,30,94,-0.0044,0.4101,0.5434,tidak
+Grid Search vs Optuna (TPE),1449,27,43,81,-0.01,0.0722,0.2167,tidak
+Random Search vs Optuna (TPE),1461,22,31,86,-0.0056,0.2717,0.5434,tidak
