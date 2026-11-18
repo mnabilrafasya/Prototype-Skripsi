@@ -32,3 +32,34 @@ def format_angka(nilai: Real, desimal: int = 0) -> str:
 def format_metrik(nilai: Real) -> str:
     """Format metrik dengan 4 desimal, mis. 0.9812 -> '0,9812'."""
     return format_angka(nilai, DESIMAL_METRIK)
+
+
+def format_angka_ringkas(nilai: Real, maks_desimal: int = 6) -> str:
+    """Format dengan paling banyak ``maks_desimal`` desimal; nol di belakang dibuang.
+
+    Untuk nilai hyperparameter, mis. 0.0001 -> '0,0001', 256 -> '256'.
+    """
+    teks = format_angka(nilai, maks_desimal)
+    if "," in teks:
+        teks = teks.rstrip("0").rstrip(",")
+    return "0" if teks in ("", "-0") else teks
+
+
+def format_selisih(nilai: Real, desimal: int = DESIMAL_METRIK) -> str:
+    """Format selisih bertanda, mis. 0.0025 -> '+0,0025', -0.0044 -> '-0,0044', 0 -> '0,0000'."""
+    teks = format_angka(nilai, desimal)
+    if teks.startswith("-") or float(teks.replace(".", "").replace(",", ".")) == 0.0:
+        return teks
+    return "+" + teks
+
+
+def format_durasi(detik: Real) -> str:
+    """Format durasi sebagai 'mm:ss' (atau 'jj:mm:ss' bila lebih dari satu jam)."""
+    if isinstance(detik, bool) or not isinstance(detik, Real):
+        raise TypeError(f"detik harus bilangan, bukan {type(detik).__name__}")
+    if not math.isfinite(float(detik)) or detik < 0:
+        raise ValueError(f"detik harus bilangan hingga >= 0, diterima {detik!r}")
+    total = int(round(float(detik)))
+    jam, sisa = divmod(total, 3600)
+    menit, dtk = divmod(sisa, 60)
+    return f"{jam:02d}:{menit:02d}:{dtk:02d}" if jam else f"{menit:02d}:{dtk:02d}"

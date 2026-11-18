@@ -33,6 +33,13 @@ from core.data import (  # noqa: E402
     muat_data_uji,
     pilih_indeks,
 )
+from core.hasil import (  # noqa: E402
+    BERKAS_HASIL_BATCH,
+    HasilBatch,
+    WaktuModel,
+    kumpulkan_info,
+    simpan_csv,
+)
 from core.inference import UKURAN_BATCH_DIIZINKAN, jalankan_inferensi  # noqa: E402
 from core.konstanta import KELAS, METODE  # noqa: E402
 from core.metrics import STATUS_SESUAI, bandingkan_dengan_acuan, hitung_metrik  # noqa: E402
@@ -58,6 +65,11 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--data-uji", type=Path, default=ROOT / "data_uji")
     ap.add_argument("--ukuran-batch", type=int, default=16, choices=UKURAN_BATCH_DIIZINKAN)
     ap.add_argument("--n", type=int, default=None, help="sampel acak (seed 42); kosong = semua")
+    ap.add_argument(
+        "--simpan-hasil",
+        action="store_true",
+        help=f"simpan hasil batch penuh ke artefak/{BERKAS_HASIL_BATCH}",
+    )
     args = ap.parse_args(argv)
 
     try:
@@ -200,6 +212,26 @@ def main(argv: list[str] | None = None) -> int:
     _cetak("FR-09 Waktu inferensi di mesin ini (bukan waktu pencarian di laporan)", pd.DataFrame(baris_waktu))
     rss, puncak = _memori_mb()
     print(f"\nMemori proses: rss {rss:.0f} MB, puncak working set {puncak:.0f} MB (tiga model di memori)")
+
+    if penuh and args.simpan_hasil:
+        tujuan = args.artefak / BERKAS_HASIL_BATCH
+        hb = HasilBatch(
+            indeks=indeks,
+            metode=METODE,
+            prediksi=app_pred,
+            proba_prediksi={m: hasil[m].proba_prediksi for m in METODE},
+            waktu={
+                m: WaktuModel(
+                    hasil[m].n_selesai,
+                    hasil[m].waktu_total_detik,
+                    hasil[m].waktu_forward_detik,
+                )
+                for m in METODE
+            },
+            info=kumpulkan_info(args.ukuran_batch, "semua data uji"),
+        )
+        simpan_csv(tujuan, data, hb)
+        print(f"\nDisimpan: {tujuan}")
 
     if penuh:
         print("\nRINGKASAN FR-13: " + ("SESUAI untuk semua model" if semua_sesuai else "ADA MODEL TIDAK SESUAI"))

@@ -5,7 +5,13 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from core.formatting import format_angka, format_metrik
+from core.formatting import (
+    format_angka,
+    format_angka_ringkas,
+    format_durasi,
+    format_metrik,
+    format_selisih,
+)
 
 
 @pytest.mark.parametrize(
@@ -68,3 +74,27 @@ def test_nilai_tidak_hingga_ditolak(buruk: float) -> None:
 def test_desimal_tidak_valid_ditolak(desimal: object) -> None:
     with pytest.raises(ValueError):
         format_angka(1.0, desimal)  # type: ignore[arg-type]
+
+
+def test_format_angka_ringkas() -> None:
+    assert format_angka_ringkas(0.0001) == "0,0001"
+    assert format_angka_ringkas(256) == "256"
+    assert format_angka_ringkas(0.5) == "0,5"
+    assert format_angka_ringkas(0.0) == "0"
+
+
+def test_format_selisih() -> None:
+    assert format_selisih(0.0025) == "+0,0025"
+    assert format_selisih(-0.0044) == "-0,0044"
+    assert format_selisih(0.0) == "0,0000"
+
+
+def test_format_durasi() -> None:
+    assert format_durasi(0) == "00:00"
+    assert format_durasi(65) == "01:05"
+    assert format_durasi(3661) == "01:01:01"
+    with pytest.raises(ValueError):
+        format_durasi(-1)
+    with pytest.raises(TypeError):
+        format_durasi(True)  # type: ignore[arg-type]
+

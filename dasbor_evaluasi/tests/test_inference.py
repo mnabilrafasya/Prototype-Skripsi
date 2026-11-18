@@ -39,7 +39,7 @@ def dasar(model_grid, jalur, transform):
 def test_bentuk_dan_probabilitas(dasar) -> None:
     assert dasar.prediksi.shape == (N,)
     assert dasar.proba.shape == (N, 4)
-    assert dasar.n_selesai == N and not dasar.dibatalkan
+    assert dasar.n_selesai == N
     assert np.allclose(dasar.proba.sum(axis=1), 1.0, atol=1e-5)
     assert np.array_equal(dasar.prediksi, dasar.proba.argmax(axis=1))
     assert np.array_equal(dasar.proba_prediksi, dasar.proba.max(axis=1))
@@ -66,18 +66,6 @@ def test_kemajuan_dipanggil_tiap_batch(model_grid, jalur, transform) -> None:
     panggilan: list[tuple[int, int]] = []
     jalankan_inferensi(model_grid, jalur, transform, 8, kemajuan=lambda s, t: panggilan.append((s, t)))
     assert panggilan == [(8, N), (16, N)]
-
-
-def test_pembatalan_mengembalikan_hasil_sebagian(model_grid, jalur, transform) -> None:
-    keadaan = {"batch": 0}
-
-    def batal() -> bool:
-        keadaan["batch"] += 1
-        return keadaan["batch"] > 1  # batalkan sebelum batch kedua
-
-    h = jalankan_inferensi(model_grid, jalur, transform, 8, batal=batal)
-    assert h.dibatalkan and h.n_selesai == 8
-    assert h.prediksi.shape == (8,) and h.proba.shape == (8, 4)
 
 
 def test_waktu_dan_throughput_terukur(dasar) -> None:

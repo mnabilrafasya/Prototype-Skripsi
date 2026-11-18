@@ -72,7 +72,7 @@ def _simpan_state(tmp_path: Path, model: nn.Module, ubah) -> Path:
 
 def test_kunci_hilang_ditolak(tmp_path: Path, model_grid: nn.Module) -> None:
     jalur = _simpan_state(tmp_path, model_grid, lambda s: s.pop("classifier.4.bias"))
-    with pytest.raises(ModelError, match="rusak.pth.*classifier.4.bias"):
+    with pytest.raises(ModelError, match=r"(?s)rusak\.pth.*Missing key.*classifier\.4\.bias"):
         muat_model(jalur, 0.5, 256)
 
 

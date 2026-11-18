@@ -53,3 +53,21 @@ MAKS_PREDIKSI_BERBEDA: Final[int] = 8
 # Seed tetap pemilihan sampel (FR-03, FR-10).
 SEED_SAMPEL: Final[int] = 42
 JUMLAH_CONTOH_LAPORAN: Final[int] = 8
+
+# Tampilan (bagian TAMPILAN spesifikasi): satu warna aksen dan warna tetap tiap metode.
+WARNA_AKSEN: Final[str] = "#1F3A5F"
+WARNA_METODE: Final[dict[str, str]] = {
+    "grid_search": "#0072B2",
+    "random_search": "#E69F00",
+    "optuna_tpe": "#009E73",
+}
+
+# Pembagian dataset (spesifikasi dan Tabel 3.1 laporan). Data latih dan validasi
+# tidak ada di prototipe; jumlahnya hanya dicatat sebagai keterangan.
+JUMLAH_TRAINING: Final[int] = 5600
+JUMLAH_LATIH: Final[int] = 4480
+JUMLAH_VALIDASI: Final[int] = 1120
+
+FOOTER: Final[str] = (
+    "Skripsi, Program Studi Teknik Informatika, Universitas Sriwijaya, 2026"
+)

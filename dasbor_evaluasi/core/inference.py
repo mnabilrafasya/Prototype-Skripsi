@@ -26,7 +26,6 @@ class HasilInferensi:
     prediksi: np.ndarray  # (n,) int64, argmax logit
     proba: np.ndarray  # (n, jumlah_kelas) float32, softmax logit
     n_selesai: int
-    dibatalkan: bool
     waktu_total_detik: float  # baca citra + praproses + forward
     waktu_forward_detik: float  # hanya forward model
 
@@ -48,13 +47,12 @@ def jalankan_inferensi(
     ukuran_batch: int,
     nama: Sequence[str] | None = None,
     kemajuan: Callable[[int, int], None] | None = None,
-    batal: Callable[[], bool] | None = None,
 ) -> HasilInferensi:
     """Jalankan model pada ``jalur`` sesuai urutannya (tanpa shuffle).
 
-    ``kemajuan(selesai, total)`` dipanggil setelah tiap batch. ``batal()`` diperiksa
-    sebelum tiap batch; bila True, hasil sebagian dikembalikan dengan
-    ``dibatalkan=True``. Tensor citra tidak ditahan; hanya prediksi dan probabilitas.
+    ``kemajuan(selesai, total)`` dipanggil setelah tiap batch (antarmuka membatalkan
+    proses dengan menghentikan eksekusi pada panggilan ini). Tensor citra tidak
+    ditahan; hanya prediksi dan probabilitas.
     """
     if ukuran_batch not in UKURAN_BATCH_DIIZINKAN:
         raise ValueError(
@@ -71,15 +69,11 @@ def jalankan_inferensi(
     prediksi: list[np.ndarray] = []
     proba: list[np.ndarray] = []
     selesai = 0
-    dibatalkan = False
     waktu_forward = 0.0
     awal = time.perf_counter()
     iterator = iter(muatan)
     with torch.no_grad():
         while selesai < total:
-            if batal is not None and batal():
-                dibatalkan = True
-                break
             batch = next(iterator)
             t0 = time.perf_counter()
             logit = model(batch)
@@ -98,7 +92,6 @@ def jalankan_inferensi(
             else np.empty((0, len(KELAS)), np.float32)
         ),
         n_selesai=selesai,
-        dibatalkan=dibatalkan,
         waktu_total_detik=waktu_total,
         waktu_forward_detik=waktu_forward,
     )

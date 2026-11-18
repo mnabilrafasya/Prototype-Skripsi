@@ -1,7 +1,17 @@
-# SEMENTARA (Tahap 1). Hanya paket yang sudah terpasang dan teruji di .venv
-# (Python 3.12.5, Windows). Paket lain (streamlit, torch, torchvision,
-# scikit-learn, statsmodels, scipy, plotly, matplotlib, opencv-python-headless,
-# pillow) ditambahkan beserta versinya setelah dipasang dan diuji di Tahap 2 dan
-# seterusnya. Indeks PyTorch CPU akan ditambahkan bersama torch.
+# SEMENTARA (Tahap 3). Versi = paket yang terpasang dan teruji di .venv
+# (Python 3.12.5, Windows). Belum dimasukkan: opencv-python-headless
+# (ditambah saat Grad-CAM dibuat dan diuji di Tahap 4).
+# Indeks CPU PyTorch. Perilaku opsi ini di Streamlit Community Cloud
+# TIDAK DIVERIFIKASI.
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.15.0
+torchvision==0.29.2
 numpy==2.5.5
 pandas==3.1.1
+pillow==13.0.0
+scikit-learn==1.9.1
+scipy==1.18.1
+statsmodels==0.15.0
+streamlit==1.67.0
+plotly==7.1.0
+matplotlib==3.11.2

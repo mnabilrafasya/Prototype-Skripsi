@@ -25,6 +25,7 @@ from core.artifacts import (
     ArtefakGagal,
     muat_artefak,
 )
+from core.hasil import BERKAS_HASIL_BATCH
 from core.konstanta import JUMLAH_DATA_UJI, KELAS, METODE
 
 AKAR_PROYEK = Path(__file__).resolve().parents[1]
@@ -87,7 +88,7 @@ def test_tidak_ada_berkas_selain_kontrak_di_artefak() -> None:
         for p in ARTEFAK_ASLI.rglob("*")
         if p.is_file()
     }
-    assert ada == set(BERKAS_WAJIB)
+    assert ada - {BERKAS_HASIL_BATCH} == set(BERKAS_WAJIB)
 
 
 def test_artefak_asli_valid(artefak_asli) -> None:
