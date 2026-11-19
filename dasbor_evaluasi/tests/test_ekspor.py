@@ -8,7 +8,18 @@ import numpy as np
 import pandas as pd
 from PIL import Image
 
-from core.ekspor import confusion_matrix_png, metrik_ke_csv, metrik_ke_dataframe
+from core.artifacts import Artefak
+from core.ekspor import (
+    confusion_matrix_png,
+    gradcam_delapan_contoh_png,
+    gradcam_tiga_model_png,
+    kurva_konvergensi_png,
+    metrik_ke_csv,
+    metrik_ke_dataframe,
+    multi_seed_f1_png,
+    sebaran_f1_trial_png,
+)
+from core.gradcam import HasilGradCAM
 from core.konstanta import KELAS, METODE, NAMA_METODE
 from core.metrics import hitung_metrik
 
@@ -38,3 +49,31 @@ def test_confusion_matrix_png_menghasilkan_gambar_valid() -> None:
     img = Image.open(io.BytesIO(data_png))
     assert img.format == "PNG"
     assert img.size[0] > 400 and img.size[1] > 400
+
+
+def test_ekspor_png_gradcam_dan_riwayat(artefak: Artefak) -> None:
+    citra = np.zeros((224, 224, 3), dtype=np.float32)
+    cam = np.linspace(0.0, 1.0, 224 * 224, dtype=np.float32).reshape(224, 224)
+    per_metode = {
+        m: HasilGradCAM(
+            metode=m,
+            kelas_prediksi=0,
+            probabilitas_prediksi=0.95,
+            probabilitas_semua=np.array([0.95, 0.02, 0.02, 0.01], dtype=np.float32),
+            citra_asli=citra,
+            cam_resized=cam,
+            overlay=citra,
+        )
+        for m in METODE
+    }
+    for data_png in (
+        gradcam_tiga_model_png("glioma/Te-gl_16.jpg", 0, per_metode),
+        gradcam_delapan_contoh_png([(137, "glioma/Te-gl_16.jpg", 0, per_metode)]),
+        kurva_konvergensi_png(artefak.trial),
+        sebaran_f1_trial_png(artefak.trial),
+        multi_seed_f1_png(artefak.multi_seed, artefak.meta.seeds_used),
+    ):
+        assert data_png.startswith(b"\x89PNG\r\n\x1a\n")
+        img = Image.open(io.BytesIO(data_png))
+        assert img.format == "PNG"
+

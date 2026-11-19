@@ -10,6 +10,7 @@ from torch import nn
 
 from core.artifacts import Artefak, ArtefakGagal, muat_artefak
 from core.data import DataUji, DataUjiError, buat_transform, muat_data_uji
+from core.gradcam import GradCAM
 from core.hasil import BERKAS_HASIL_BATCH, HasilBatch, HasilBatchError, muat_csv
 from core.model import ModelError, muat_model
 from ui import tema
@@ -40,13 +41,14 @@ def _data_uji_tercache() -> DataUji:
     return muat_data_uji(DIR_DATA_UJI, _artefak_tercache().manifest)
 
 
-@st.cache_resource(show_spinner="Memuat model")
-def _model_tercache(metode: str) -> nn.Module:
+@st.cache_resource(show_spinner="Memuat model dan Grad-CAM")
+def _model_dan_gradcam_tercache(metode: str) -> tuple[nn.Module, GradCAM]:
     artefak = _artefak_tercache()
     konfig = artefak.meta.best_configs[metode]
-    return muat_model(
+    model = muat_model(
         artefak.bobot[metode], float(konfig["dropout_rate"]), int(konfig["dense_units"])
     )
+    return model, GradCAM(model)
 
 
 def artefak() -> Artefak:
@@ -69,7 +71,15 @@ def data_uji() -> DataUji:
 def ambil_model(metode: str) -> nn.Module:
     """Model dari cache (st.cache_resource); dimuat sekali per metode."""
     try:
-        return _model_tercache(metode)
+        return _model_dan_gradcam_tercache(metode)[0]
+    except ModelError as e:
+        berhenti_dengan_galat(str(e))
+
+
+def ambil_gradcam(metode: str) -> GradCAM:
+    """Instance tunggal GradCAM dari cache (st.cache_resource) untuk metode terkait."""
+    try:
+        return _model_dan_gradcam_tercache(metode)[1]
     except ModelError as e:
         berhenti_dengan_galat(str(e))
 

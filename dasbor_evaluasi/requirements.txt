@@ -1,6 +1,4 @@
-# SEMENTARA (Tahap 3). Versi = paket yang terpasang dan teruji di .venv
-# (Python 3.12.5, Windows). Belum dimasukkan: opencv-python-headless
-# (ditambah saat Grad-CAM dibuat dan diuji di Tahap 4).
+# Versi = paket yang terpasang dan teruji di .venv (Python 3.12.5, Windows).
 # Indeks CPU PyTorch. Perilaku opsi ini di Streamlit Community Cloud
 # TIDAK DIVERIFIKASI.
 --extra-index-url https://download.pytorch.org/whl/cpu
@@ -15,3 +13,4 @@ statsmodels==0.15.0
 streamlit==1.67.0
 plotly==7.1.0
 matplotlib==3.11.2
+opencv-python-headless==5.1.0.95
