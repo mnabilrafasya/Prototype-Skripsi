@@ -92,12 +92,14 @@ def transform():
 
 def hasil_tersimpan() -> HasilBatch | None:
     """Hasil batch di session_state; di Mode Presentasi dimuat dari artefak/hasil_batch_penuh.csv."""
-    if KUNCI_HASIL not in st.session_state and st.session_state.get(tema.KUNCI_PRESENTASI, False):
+    sekarang: HasilBatch | None = st.session_state.get(KUNCI_HASIL)
+    perlu_muat = sekarang is None or not (sekarang.penuh and sekarang.semua_model)
+    if st.session_state.get(tema.KUNCI_PRESENTASI, False) and perlu_muat:
         try:
             hasil = muat_csv(BERKAS_PRESENTASI, data_uji())
         except HasilBatchError as e:
             st.error(f"Mode Presentasi tidak dapat memuat hasil tersimpan. {e}")
-            return None
+            return sekarang
         st.session_state[KUNCI_HASIL] = hasil
         st.session_state[KUNCI_SUMBER_HASIL] = f"berkas {BERKAS_HASIL_BATCH}"
     return st.session_state.get(KUNCI_HASIL)

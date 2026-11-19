@@ -14,12 +14,20 @@ h1, h2, h3 {{ color: {WARNA_AKSEN}; }}
   border-top: 1px solid #C8CDD3; padding-top: 0.5rem; }}
 """
 
-# Huruf diperbesar (20 px = 15 pt) dan sidebar disembunyikan.
+# Huruf diperbesar (20 px = 15 pt, >= 14 pt), kontras tinggi, dan sidebar disembunyikan.
 _CSS_PRESENTASI = """
-html { font-size: 20px; }
-[data-testid="stSidebar"], [data-testid="stSidebarCollapsedControl"],
-[data-testid="collapsedControl"] { display: none; }
-.footer-skripsi { font-size: 1rem; }
+html, body { font-size: 20px !important; color: #111111 !important; background-color: #FFFFFF !important; }
+[data-testid="stMarkdownContainer"] p,
+[data-testid="stMarkdownContainer"] li,
+[data-testid="stTable"] td,
+[data-testid="stTable"] th,
+[data-testid="stCaptionContainer"],
+label { font-size: 20px !important; line-height: 1.5 !important; color: #111111 !important; }
+[data-testid="stSidebar"],
+[data-testid="stSidebarCollapsedControl"],
+[data-testid="collapsedControl"],
+[data-testid="stExpandSidebarButton"] { display: none !important; }
+.footer-skripsi { font-size: 1rem !important; color: #111111 !important; }
 """
 
 
@@ -47,6 +55,10 @@ def judul(teks: str) -> None:
     """Siapkan tema, tombol Mode Presentasi di sidebar, dan judul halaman."""
     terapkan_tema()
     tombol_presentasi_sidebar()
+    if presentasi_aktif():
+        from ui import sumber
+
+        sumber.hasil_tersimpan()
     st.title(teks)
 
 

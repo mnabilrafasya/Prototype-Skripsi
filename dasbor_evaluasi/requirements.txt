@@ -1,6 +1,9 @@
-# Versi = paket yang terpasang dan teruji di .venv (Python 3.12.5, Windows).
-# Indeks CPU PyTorch. Perilaku opsi ini di Streamlit Community Cloud
-# TIDAK DIVERIFIKASI.
+# Seluruh nomor versi di bawah ini diambil langsung dari `pip freeze` pada .venv
+# lokal (Python 3.12.5, Windows 11) dan TERVERIFIKASI lewat 200 tes pytest lokal.
+# Catatan untuk deploy ke Streamlit Community Cloud (Linux):
+# - Resolusi `--extra-index-url` dan wheel Linux x86_64 di Streamlit Community Cloud:
+#   TIDAK DIVERIFIKASI (belum dijalankan di server Streamlit Community Cloud).
+# - Di .venv lokal terpasang build lokal `torch==2.15.0+cpu` dan `torchvision==0.29.2+cpu`.
 --extra-index-url https://download.pytorch.org/whl/cpu
 torch==2.15.0
 torchvision==0.29.2
