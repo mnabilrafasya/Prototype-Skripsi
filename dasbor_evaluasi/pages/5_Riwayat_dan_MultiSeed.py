@@ -46,9 +46,7 @@ st.plotly_chart(
 )
 st.download_button(
     "Unduh PNG kurva konvergensi",
-    kurva_konvergensi_png(
-        artefak.trial, ukuran_font=13 if tema.presentasi_aktif() else 11
-    ),
+    kurva_konvergensi_png(artefak.trial, ukuran_font=11),
     file_name="kurva_konvergensi.png",
     mime="image/png",
     key="unduh_png_konvergensi",
@@ -62,9 +60,7 @@ st.plotly_chart(
 )
 st.download_button(
     "Unduh PNG sebaran F1-score validasi per trial",
-    sebaran_f1_trial_png(
-        artefak.trial, ukuran_font=11 if tema.presentasi_aktif() else 10
-    ),
+    sebaran_f1_trial_png(artefak.trial, ukuran_font=10),
     file_name="sebaran_f1_per_trial.png",
     mime="image/png",
     key="unduh_png_sebaran_trial",
@@ -122,36 +118,38 @@ for m in METODE:
 tampilkan_tabel(pd.DataFrame(baris_konfig))
 st.caption("Sumber: meta.json dan trial_*.csv.")
 
-st.markdown("#### Tabel Riwayat Seluruh Trial per Metode")
-metode_trial = st.selectbox(
-    "Pilih metode untuk melihat riwayat seluruh trial",
-    METODE,
-    format_func=NAMA_METODE.get,
-    key="pilih_metode_trial",
-)
-df_mentah = artefak.trial[metode_trial]
-tampil_trial = pd.DataFrame(
-    {
-        "Trial": [format_angka(int(v)) for v in df_mentah["trial"]],
-        "Akurasi validasi": [format_metrik(float(v)) for v in df_mentah["val_acc"]],
-        "F1-score macro validasi": [format_metrik(float(v)) for v in df_mentah["val_f1"]],
-        "Terbaik sejauh ini (best_so_far)": [
-            format_metrik(float(v)) for v in df_mentah["best_so_far"]
-        ],
-        "Epoch dilatih": [format_angka(int(v)) for v in df_mentah["epochs_trained"]],
-        "Waktu pelatihan (detik)": [
-            format_angka(float(v), 2) for v in df_mentah["training_time_sec"]
-        ],
-    }
-)
-for k in kunci_konfig:
-    kol_csv = f"config.{k}"
-    nama_kol = NAMA_KONFIGURASI.get(k, k)
-    tampil_trial[nama_kol] = [
-        format_angka_ringkas(v) if isinstance(v, (int, float)) and not isinstance(v, bool) else str(v)
-        for v in df_mentah[kol_csv]
-    ]
-tampilkan_tabel(tampil_trial, tinggi=340)
+with st.expander("Tabel riwayat seluruh trial per metode", expanded=False):
+    metode_trial = st.selectbox(
+        "Pilih metode untuk melihat riwayat seluruh trial",
+        METODE,
+        format_func=NAMA_METODE.get,
+        key="pilih_metode_trial",
+    )
+    df_mentah = artefak.trial[metode_trial]
+    tampil_trial = pd.DataFrame(
+        {
+            "Trial": [format_angka(int(v)) for v in df_mentah["trial"]],
+            "Akurasi validasi": [format_metrik(float(v)) for v in df_mentah["val_acc"]],
+            "F1-score macro validasi": [format_metrik(float(v)) for v in df_mentah["val_f1"]],
+            "Terbaik sejauh ini (best_so_far)": [
+                format_metrik(float(v)) for v in df_mentah["best_so_far"]
+            ],
+            "Epoch dilatih": [format_angka(int(v)) for v in df_mentah["epochs_trained"]],
+            "Waktu pelatihan (detik)": [
+                format_angka(float(v), 2) for v in df_mentah["training_time_sec"]
+            ],
+        }
+    )
+    for k in kunci_konfig:
+        kol_csv = f"config.{k}"
+        nama_kol = NAMA_KONFIGURASI.get(k, k)
+        tampil_trial[nama_kol] = [
+            format_angka_ringkas(v)
+            if isinstance(v, (int, float)) and not isinstance(v, bool)
+            else str(v)
+            for v in df_mentah[kol_csv]
+        ]
+    tampilkan_tabel(tampil_trial, tinggi=340)
 
 # ---------------------------------------------------- FR-12 Validasi Multi-Seed
 st.subheader("Validasi Multi-Seed dan Uji Wilcoxon (dari Artefak)")
@@ -170,7 +168,7 @@ st.plotly_chart(
 )
 st.download_button(
     "Unduh PNG grafik F1-score macro multi-seed",
-    multi_seed_f1_png(ms, seeds, ukuran_font=13 if tema.presentasi_aktif() else 11),
+    multi_seed_f1_png(ms, seeds, ukuran_font=11),
     file_name="multi_seed_f1_macro.png",
     mime="image/png",
     key="unduh_png_multi_seed",
@@ -198,17 +196,6 @@ for m in METODE:
     )
 tampilkan_tabel(pd.DataFrame(baris_ringkasan_ms))
 
-st.markdown("#### F1-score Macro dan Akurasi per Seed per Metode")
-baris_per_seed = []
-for s in seeds:
-    b_seed: dict[str, str] = {"Seed": str(s)}
-    for m in METODE:
-        baris_m = ms[(ms["method"] == m) & (ms["seed"] == s)].iloc[0]
-        b_seed[f"F1-score macro {NAMA_METODE[m]}"] = format_metrik(float(baris_m["f1_macro"]))
-        b_seed[f"Akurasi {NAMA_METODE[m]}"] = format_metrik(float(baris_m["accuracy"]))
-    baris_per_seed.append(b_seed)
-tampilkan_tabel(pd.DataFrame(baris_per_seed))
-
 st.markdown("#### Hasil Uji Wilcoxon Signed-Rank dengan Koreksi Holm (dari wilcoxon.csv)")
 wi = artefak.wilcoxon
 tampilkan_tabel(
@@ -232,5 +219,16 @@ tampilkan_tabel(
     )
 )
 st.caption("Sumber: wilcoxon.csv (dihitung di notebook, tidak dihitung ulang di aplikasi).")
+
+with st.expander("Tabel F1-score macro dan akurasi per seed per metode", expanded=False):
+    baris_per_seed = []
+    for s in seeds:
+        b_seed: dict[str, str] = {"Seed": str(s)}
+        for m in METODE:
+            baris_m = ms[(ms["method"] == m) & (ms["seed"] == s)].iloc[0]
+            b_seed[f"F1-score macro {NAMA_METODE[m]}"] = format_metrik(float(baris_m["f1_macro"]))
+            b_seed[f"Akurasi {NAMA_METODE[m]}"] = format_metrik(float(baris_m["accuracy"]))
+        baris_per_seed.append(b_seed)
+    tampilkan_tabel(pd.DataFrame(baris_per_seed))
 
 tema.footer()

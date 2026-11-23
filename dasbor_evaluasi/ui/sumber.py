@@ -1,4 +1,4 @@
-"""Pemuatan sumber (artefak, data uji, model) dengan cache dan pesan galat spesifik."""
+"""Pemuatan sumber (artefak, data uji, model, Grad-CAM) dengan cache dan pesan galat spesifik."""
 
 from __future__ import annotations
 
@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import NoReturn
 
 import streamlit as st
+# pyrefly: ignore[missing-import]
 from torch import nn
 
 from core.artifacts import Artefak, ArtefakGagal, muat_artefak
@@ -18,7 +19,7 @@ from ui import tema
 AKAR = Path(__file__).resolve().parents[1]
 DIR_ARTEFAK = AKAR / "artefak"
 DIR_DATA_UJI = AKAR / "data_uji"
-BERKAS_PRESENTASI = DIR_ARTEFAK / BERKAS_HASIL_BATCH
+BERKAS_HASIL_TERSIMPAN = DIR_ARTEFAK / BERKAS_HASIL_BATCH
 
 KUNCI_HASIL = "hasil_batch"
 KUNCI_SUMBER_HASIL = "sumber_hasil"
@@ -90,27 +91,27 @@ def transform():
     return buat_transform(meta.img_size, meta.imagenet_mean, meta.imagenet_std)
 
 
+def muat_hasil_penuh_tersimpan() -> HasilBatch | None:
+    """Muat artefak/hasil_batch_penuh.csv (hasil run penuh aplikasi) ke session_state."""
+    try:
+        hasil = muat_csv(BERKAS_HASIL_TERSIMPAN, data_uji())
+    except HasilBatchError as e:
+        st.error(f"Gagal memuat hasil batch penuh tersimpan. {e}")
+        return None
+    st.session_state[KUNCI_HASIL] = hasil
+    st.session_state[KUNCI_SUMBER_HASIL] = f"berkas {BERKAS_HASIL_BATCH}"
+    return hasil
+
+
 def hasil_tersimpan() -> HasilBatch | None:
-    """Hasil batch di session_state; di Mode Presentasi dimuat dari artefak/hasil_batch_penuh.csv."""
-    sekarang: HasilBatch | None = st.session_state.get(KUNCI_HASIL)
-    perlu_muat = sekarang is None or not (sekarang.penuh and sekarang.semua_model)
-    if st.session_state.get(tema.KUNCI_PRESENTASI, False) and perlu_muat:
-        try:
-            hasil = muat_csv(BERKAS_PRESENTASI, data_uji())
-        except HasilBatchError as e:
-            st.error(f"Mode Presentasi tidak dapat memuat hasil tersimpan. {e}")
-            return sekarang
-        st.session_state[KUNCI_HASIL] = hasil
-        st.session_state[KUNCI_SUMBER_HASIL] = f"berkas {BERKAS_HASIL_BATCH}"
+    """Kembalikan hasil batch yang tersimpan di session_state, atau None bila belum ada."""
     return st.session_state.get(KUNCI_HASIL)
 
 
 def keterangan_sumber(hasil: HasilBatch) -> str:
-    """Teks asal hasil: dijalankan di sesi ini atau dimuat dari berkas, beserta metadata."""
+    """Keterangan ringkas asal hasil batch (detail perangkat tetap tersimpan di metadata CSV)."""
     asal = st.session_state.get(KUNCI_SUMBER_HASIL, "dijalankan pada sesi ini")
-    i = hasil.info
-    return (
-        f"Sumber hasil: {asal}. Dihasilkan {i['tanggal']}; perangkat {i['perangkat']}; "
-        f"Python {i['versi_python']}, torch {i['versi_torch']}, streamlit {i['versi_streamlit']}; "
-        f"ukuran batch {i['ukuran_batch']}; sampel: {i['sampel']}."
-    )
+    tanggal = hasil.info.get("tanggal", "")[:10]
+    if asal == "dijalankan pada sesi ini":
+        return "Sumber hasil: inferensi langsung pada sesi ini (CPU)."
+    return f"Sumber hasil: {asal} (dijalankan pada {tanggal}, CPU)."

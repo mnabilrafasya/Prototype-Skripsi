@@ -35,7 +35,10 @@ data_uji = sumber.data_uji()
 hasil = sumber.hasil_tersimpan()
 
 if hasil is None:
-    st.write("Belum ada hasil batch. Jalankan batch terlebih dahulu di halaman Prediksi Batch.")
+    st.write(
+        "Belum ada hasil batch. Jalankan batch atau muat hasil batch penuh tersimpan "
+        "(1.600 citra) terlebih dahulu di halaman Prediksi Batch."
+    )
     tema.footer()
     st.stop()
 
@@ -50,8 +53,32 @@ st.write(
 )
 st.caption(sumber.keterangan_sumber(hasil))
 
-# ------------------------------------------------------- FR-07 Metrik per model
-st.subheader("Metrik per Model")
+# -------------------------------------- Ringkasan Metrik di Atas (FR-07, FR-08)
+st.subheader("Ringkasan Metrik Evaluasi")
+kartu = st.columns(len(hasil.metode))
+for kol, m in zip(kartu, hasil.metode):
+    km = metrik[m]
+    with kol:
+        with st.container(border=True):
+            st.markdown(f"**{penanda_metode(m)}**", unsafe_allow_html=True)
+            k_acc, k_f1 = st.columns(2)
+            k_acc.metric("Akurasi", format_metrik(km.accuracy))
+            k_f1.metric("F1-score macro", format_metrik(km.f1_macro))
+
+ringkas_rows = []
+for m in hasil.metode:
+    km = metrik[m]
+    baris = {
+        "Metode": NAMA_METODE[m],
+        "N": format_angka(km.n),
+        "Akurasi": format_metrik(km.accuracy),
+        "F1-score macro": format_metrik(km.f1_macro),
+    }
+    for k in KELAS:
+        baris[f"F1 {k}"] = format_metrik(float(km.per_kelas.loc[k, "f1"]))
+    ringkas_rows.append(baris)
+
+tampilkan_tabel(pd.DataFrame(ringkas_rows))
 st.download_button(
     "Unduh CSV metrik",
     metrik_ke_csv(metrik),
@@ -61,92 +88,24 @@ st.download_button(
     on_click="ignore",
 )
 
-for m in hasil.metode:
-    km = metrik[m]
-    st.markdown(f"### {penanda_metode(m)}", unsafe_allow_html=True)
-    tampilkan_tabel(
-        pd.DataFrame(
-            {
-                "N sampel": [format_angka(km.n)],
-                "Akurasi": [format_metrik(km.accuracy)],
-                "F1-score macro": [format_metrik(km.f1_macro)],
-            }
-        )
-    )
-    pk = km.per_kelas
-    tampilkan_tabel(
-        pd.DataFrame(
-            {
-                "Kelas": list(KELAS),
-                "Presisi": [format_metrik(float(pk.loc[k, "presisi"])) for k in KELAS],
-                "Recall": [format_metrik(float(pk.loc[k, "recall"])) for k in KELAS],
-                "F1-score": [format_metrik(float(pk.loc[k, "f1"])) for k in KELAS],
-                "Dukungan (N)": [format_angka(int(pk.loc[k, "dukungan"])) for k in KELAS],
-            }
-        )
-    )
-
-    kiri, kanan = st.columns(2)
-    with kiri:
-        st.write("Tabel angka confusion matrix (baris: kelas asli, kolom: kelas prediksi):")
-        cm_df = pd.DataFrame(
-            {"Kelas asli": list(KELAS)}
-            | {
-                f"Prediksi {k}": [format_angka(int(km.confusion_matrix[i, j])) for i in range(len(KELAS))]
-                for j, k in enumerate(KELAS)
-            }
-        )
-        tampilkan_tabel(cm_df)
-    with kanan:
-        st.plotly_chart(
-            peta_panas(km.confusion_matrix, m, hasil),
-            width="stretch",
-            key=f"cm_plot_{m}",
-        )
-    png_bytes = confusion_matrix_png(
-        km.confusion_matrix,
-        judul=f"Confusion Matrix {NAMA_METODE[m]}",
-        subjudul=subjudul(hasil),
-        ukuran_font=14 if tema.presentasi_aktif() else 12,
-    )
-    st.download_button(
-        f"Unduh PNG confusion matrix ({NAMA_METODE[m]})",
-        png_bytes,
-        file_name=f"confusion_matrix_{m}.png",
-        mime="image/png",
-        key=f"unduh_cm_{m}",
-        on_click="ignore",
-    )
-
-# ------------------------------------------------ FR-08 Perbandingan tiga model
-st.subheader("Perbandingan Tiga Model")
-if not hasil.semua_model:
-    st.info(
-        "Perbandingan tiga model dan McNemar's test hanya aktif bila ketiga model "
-        "dijalankan pada sampel yang sama."
-    )
-else:
-    st.write(f"N sampel yang dipakai untuk perbandingan berpasangan: {format_angka(hasil.n)} citra.")
-    ringkas_rows = []
-    for m in hasil.metode:
-        km = metrik[m]
-        baris = {
-            "Metode": NAMA_METODE[m],
-            "N": format_angka(km.n),
-            "Akurasi": format_metrik(km.accuracy),
-            "F1-score macro": format_metrik(km.f1_macro),
-        }
-        for k in KELAS:
-            baris[f"F1 {k}"] = format_metrik(float(km.per_kelas.loc[k, "f1"]))
-        ringkas_rows.append(baris)
-    tampilkan_tabel(pd.DataFrame(ringkas_rows))
+if hasil.semua_model:
     st.plotly_chart(
         grafik_perbandingan_metrik(metrik, hasil),
         width="stretch",
         key="plot_perbandingan_metrik",
     )
 
-    st.markdown("#### Uji McNemar Exact dengan Koreksi Holm")
+# ------------------------------ FR-08 Uji McNemar Exact dengan Koreksi Holm
+st.subheader("Perbandingan Statistik: Uji McNemar (Exact + Koreksi Holm)")
+if not hasil.semua_model:
+    st.info(
+        "Perbandingan tiga model dan McNemar's test hanya aktif bila ketiga model "
+        "dijalankan pada sampel yang sama."
+    )
+else:
+    st.write(
+        f"N sampel yang dipakai untuk perbandingan berpasangan: {format_angka(hasil.n)} citra."
+    )
     mc = mcnemar_tiga_pasangan(y_true, hasil.prediksi)
     tampilkan_tabel(
         pd.DataFrame(
@@ -177,7 +136,7 @@ if not hasil.penuh:
         "data uji bawaan (1.600 citra)."
     )
 else:
-    st.write(
+    st.caption(
         "Kriteria status SESUAI: selisih akurasi absolut tidak lebih dari "
         f"{format_angka(TOLERANSI_SELISIH_AKURASI, 3)} dan jumlah prediksi yang berbeda dari "
         f"test_manifest_prediksi.csv tidak lebih dari {format_angka(MAKS_PREDIKSI_BERBEDA)} citra."
@@ -225,5 +184,64 @@ else:
     if detail_beda:
         st.write("Rincian citra dengan prediksi berbeda dari test_manifest_prediksi.csv:")
         tampilkan_tabel(pd.DataFrame(detail_beda))
+
+# ------------------------------------ FR-07 Detail per Model dalam st.tabs
+st.subheader("Detail Metrik per Kelas dan Confusion Matrix")
+tabs = st.tabs([NAMA_METODE[m] for m in hasil.metode])
+for tab, m in zip(tabs, hasil.metode):
+    km = metrik[m]
+    pk = km.per_kelas
+    with tab:
+        st.markdown(
+            f"**{penanda_metode(m)}** — N = {format_angka(km.n)} citra | "
+            f"Akurasi = {format_metrik(km.accuracy)} | "
+            f"F1-score macro = {format_metrik(km.f1_macro)}",
+            unsafe_allow_html=True,
+        )
+        tampilkan_tabel(
+            pd.DataFrame(
+                {
+                    "Kelas": list(KELAS),
+                    "Presisi": [format_metrik(float(pk.loc[k, "presisi"])) for k in KELAS],
+                    "Recall": [format_metrik(float(pk.loc[k, "recall"])) for k in KELAS],
+                    "F1-score": [format_metrik(float(pk.loc[k, "f1"])) for k in KELAS],
+                    "Dukungan (N)": [format_angka(int(pk.loc[k, "dukungan"])) for k in KELAS],
+                }
+            )
+        )
+
+        kiri, kanan = st.columns([1, 1.15])
+        with kiri:
+            st.caption("Tabel angka confusion matrix (baris: kelas asli, kolom: kelas prediksi)")
+            cm_df = pd.DataFrame(
+                {"Kelas asli": list(KELAS)}
+                | {
+                    f"Prediksi {k}": [
+                        format_angka(int(km.confusion_matrix[i, j])) for i in range(len(KELAS))
+                    ]
+                    for j, k in enumerate(KELAS)
+                }
+            )
+            tampilkan_tabel(cm_df)
+            png_bytes = confusion_matrix_png(
+                km.confusion_matrix,
+                judul=f"Confusion Matrix {NAMA_METODE[m]}",
+                subjudul=subjudul(hasil),
+                ukuran_font=12,
+            )
+            st.download_button(
+                f"Unduh PNG confusion matrix ({NAMA_METODE[m]})",
+                png_bytes,
+                file_name=f"confusion_matrix_{m}.png",
+                mime="image/png",
+                key=f"unduh_cm_{m}",
+                on_click="ignore",
+            )
+        with kanan:
+            st.plotly_chart(
+                peta_panas(km.confusion_matrix, m, hasil),
+                width="stretch",
+                key=f"cm_plot_{m}",
+            )
 
 tema.footer()

@@ -17,9 +17,9 @@ from ui.tampilan import tampilkan_tabel
 
 KUNCI_PROSES = "proses_batch_berjalan"
 PILIHAN_SAMPEL = {
-    "Semua data uji": MODE_SEMUA,
-    f"Acak n (seed {SEED_SAMPEL})": MODE_ACAK,
     f"Seimbang n per kelas (seed {SEED_SAMPEL})": MODE_SEIMBANG,
+    f"Acak n (seed {SEED_SAMPEL})": MODE_ACAK,
+    "Semua data uji": MODE_SEMUA,
 }
 SEMUA_MODEL = "Semua model"
 
@@ -29,45 +29,69 @@ data_uji = sumber.data_uji()
 if st.session_state.pop(KUNCI_PROSES, False):
     st.warning("Proses batch sebelumnya dibatalkan. Hasil sebagian tidak disimpan.")
 
-st.write(
-    f"Sumber data: data uji bawaan ({format_angka(len(data_uji))} citra) dari folder data_uji/. "
-    "Tidak ada unggahan dataset."
+st.caption(
+    f"Sumber data: data uji bawaan ({format_angka(len(data_uji))} citra, 400 per kelas) "
+    "dari folder data_uji/. Tidak ada unggahan dataset."
 )
 
 # ----------------------------------------------------------------- pengaturan
 st.subheader("Pengaturan Batch")
-kolom1, kolom2, kolom3 = st.columns(3)
-with kolom1:
-    pilihan = st.radio("Jumlah sampel", list(PILIHAN_SAMPEL))
-    mode = PILIHAN_SAMPEL[pilihan]
-    n_sampel: int | None = None
-    if mode == MODE_ACAK:
-        n_sampel = int(st.number_input("n sampel", 1, JUMLAH_DATA_UJI, 200, step=1))
-    elif mode == MODE_SEIMBANG:
-        maks = int(np.bincount(data_uji.label).min())
-        n_sampel = int(st.number_input("n per kelas", 1, maks, min(25, maks), step=1))
-with kolom2:
-    ukuran_batch = int(st.selectbox("Ukuran batch inferensi", UKURAN_BATCH_DIIZINKAN, index=1))
-with kolom3:
-    cakupan = st.radio("Model", ["Ketiga model", "Satu model"])
-    if cakupan == "Satu model":
-        metode_dipilih = [st.selectbox("Pilih model", METODE, format_func=NAMA_METODE.get)]
-    else:
-        metode_dipilih = list(METODE)
+with st.container(border=True):
+    kol_mode, kol_n = st.columns([2, 1])
+    with kol_mode:
+        pilihan = st.radio("Cakupan sampel data uji", list(PILIHAN_SAMPEL), horizontal=True)
+        mode = PILIHAN_SAMPEL[pilihan]
+    with kol_n:
+        n_sampel: int | None = None
+        if mode == MODE_SEIMBANG:
+            maks = int(np.bincount(data_uji.label).min())
+            n_sampel = int(st.number_input("n per kelas", 1, maks, min(10, maks), step=1))
+        elif mode == MODE_ACAK:
+            n_sampel = int(st.number_input("n sampel", 1, JUMLAH_DATA_UJI, 40, step=1))
+        else:
+            st.caption("Seluruh 1.600 citra data uji (sekitar 5 menit di CPU).")
 
-indeks = pilih_indeks(data_uji.label, mode, n_sampel)
-deskripsi = {
-    MODE_SEMUA: "semua data uji",
-    MODE_ACAK: f"acak {format_angka(n_sampel or 0)} citra, seed {SEED_SAMPEL}",
-    MODE_SEIMBANG: f"seimbang {format_angka(n_sampel or 0)} per kelas, seed {SEED_SAMPEL}",
-}[mode]
-st.write(
-    f"Sampel yang akan diproses: {format_angka(len(indeks))} citra untuk "
-    f"{len(metode_dipilih)} model, sampel identik untuk semua model."
-)
+    with st.expander("Pengaturan lanjutan (ukuran batch & pilihan model)", expanded=False):
+        kol_b, kol_m = st.columns(2)
+        with kol_b:
+            ukuran_batch = int(
+                st.selectbox("Ukuran batch inferensi", UKURAN_BATCH_DIIZINKAN, index=1)
+            )
+            st.caption("Ukuran batch hanya memengaruhi kecepatan dan RAM, tidak mengubah prediksi.")
+        with kol_m:
+            cakupan = st.radio("Model yang dijalankan", ["Ketiga model", "Satu model"])
+            if cakupan == "Satu model":
+                metode_dipilih = [
+                    st.selectbox("Pilih model", METODE, format_func=NAMA_METODE.get)
+                ]
+            else:
+                metode_dipilih = list(METODE)
+
+    indeks = pilih_indeks(data_uji.label, mode, n_sampel)
+    deskripsi = {
+        MODE_SEMUA: "semua data uji",
+        MODE_ACAK: f"acak {format_angka(n_sampel or 0)} citra, seed {SEED_SAMPEL}",
+        MODE_SEIMBANG: f"seimbang {format_angka(n_sampel or 0)} per kelas, seed {SEED_SAMPEL}",
+    }[mode]
+    st.write(
+        f"Sampel yang akan diproses: **{format_angka(len(indeks))} citra** untuk "
+        f"**{len(metode_dipilih)} model** (urutan sampel identik untuk semua model)."
+    )
+    tb1, tb2 = st.columns([1, 1.5])
+    with tb1:
+        jalankan = st.button("Jalankan batch", type="primary", width="stretch")
+    with tb2:
+        muat_tersimpan = st.button(
+            "Muat hasil batch penuh tersimpan (1.600 citra)",
+            key="muat_hasil_tersimpan",
+            width="stretch",
+        )
+
+if muat_tersimpan:
+    sumber.muat_hasil_penuh_tersimpan()
 
 # ------------------------------------------------------------------ eksekusi
-if st.button("Jalankan batch", type="primary"):
+if jalankan:
     st.session_state[KUNCI_PROSES] = True
     wadah = st.empty()
     with wadah.container():
@@ -102,25 +126,29 @@ if st.button("Jalankan batch", type="primary"):
 
 hasil = sumber.hasil_tersimpan()
 if hasil is None:
-    st.write("Belum ada hasil batch. Atur sampel lalu jalankan batch.")
+    st.write(
+        "Belum ada hasil batch. Klik **Jalankan batch** untuk inferensi langsung, atau klik "
+        "**Muat hasil batch penuh tersimpan (1.600 citra)**."
+    )
     tema.footer()
     st.stop()
 
 # ---------------------------------------------------------------- ringkasan
-st.subheader("Hasil Batch")
-st.write(
-    f"N = {format_angka(hasil.n)} citra; sampel: {hasil.info['sampel']}; "
-    f"model: {', '.join(NAMA_METODE[m] for m in hasil.metode)}."
-)
+st.subheader("Hasil Batch dan Waktu Inferensi")
+r1, r2, r3 = st.columns(3)
+r1.metric("Jumlah sampel (N)", format_angka(hasil.n))
+r2.metric("Jumlah model", format_angka(len(hasil.metode)))
+r3.metric("Ukuran batch", hasil.info["ukuran_batch"])
 st.caption(sumber.keterangan_sumber(hasil))
 
-st.subheader("Waktu Inferensi")
 tampilkan_tabel(
     pd.DataFrame(
         {
             "Model": [NAMA_METODE[m] for m in hasil.metode],
             "N citra": [format_angka(hasil.waktu[m].n) for m in hasil.metode],
-            "Waktu total (detik)": [format_angka(hasil.waktu[m].total_detik, 2) for m in hasil.metode],
+            "Waktu total (detik)": [
+                format_angka(hasil.waktu[m].total_detik, 2) for m in hasil.metode
+            ],
             "Waktu forward model (detik)": [
                 format_angka(hasil.waktu[m].forward_detik, 2) for m in hasil.metode
             ],
@@ -138,16 +166,17 @@ st.caption(
 # ----------------------------------------------------------- tabel per citra
 st.subheader("Prediksi per Citra")
 tabel = tabel_prediksi(data_uji, hasil)
-f1, f2, f3 = st.columns(3)
+f1, f2, f3 = st.columns([2, 3, 2], vertical_alignment="bottom")
 with f1:
     filter_model = st.selectbox(
-        "Filter model", [SEMUA_MODEL, *hasil.metode],
+        "Filter model",
+        [SEMUA_MODEL, *hasil.metode],
         format_func=lambda m: m if m == SEMUA_MODEL else NAMA_METODE[m],
     )
 with f2:
     filter_kelas = st.multiselect("Filter kelas (label asli)", list(KELAS), default=list(KELAS))
 with f3:
-    hanya_salah = st.checkbox("Hanya yang salah")
+    hanya_salah = st.checkbox("Hanya yang salah", value=False)
 
 metode_tampil = list(hasil.metode) if filter_model == SEMUA_MODEL else [filter_model]
 topeng = tabel["label_asli"].isin(filter_kelas)
@@ -156,6 +185,8 @@ if hanya_salah:
     for m in metode_tampil:
         salah |= (tabel[f"status_{m}"] == STATUS_SALAH).to_numpy()
     topeng &= salah
+
+# Urutan kolom konsisten: berkas, label asli, lalu (prediksi, probabilitas, status) per model.
 kolom = ["berkas", "label_asli"] + [
     f"{awal}_{m}" for m in metode_tampil for awal in ("prediksi", "probabilitas", "status")
 ]

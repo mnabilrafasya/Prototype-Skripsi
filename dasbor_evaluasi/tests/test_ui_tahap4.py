@@ -49,14 +49,22 @@ def test_halaman_5_menampilkan_riwayat_dan_multiseed_dari_artefak() -> None:
     assert not at.exception
     assert at.title[0].value == "Riwayat Pencarian dan Multi-Seed"
     assert any("tidak dihitung ulang di aplikasi" in i.value for i in at.info)
-    # 5 tabel: waktu pencarian, konfigurasi terbaik, riwayat trial, ringkasan multi-seed, per seed, wilcoxon -> 6 tabel
+    # 6 tabel: waktu pencarian, konfigurasi terbaik, riwayat trial (expander),
+    # ringkasan multi-seed, wilcoxon, per seed (expander)
     assert len(at.dataframe) == 6
-    df_waktu = at.dataframe[0].value
+    assert len(at.expander) == 2
+    assert all(not e.proto.expanded for e in at.expander)
+    df_waktu = next(
+        d.value for d in at.dataframe if "Rata-rata kolom training_time_sec (detik)" in d.value.columns
+    )
     assert "Waktu rata-rata per trial — total/jumlah trial (detik)" in df_waktu.columns
-    assert "Rata-rata kolom training_time_sec (detik)" in df_waktu.columns
-    df_ms = at.dataframe[3].value
-    assert "Simpangan baku F1-score macro (ddof = 1)" in df_ms.columns
-    df_wil = at.dataframe[5].value
+    df_ms = next(
+        d.value for d in at.dataframe if "Simpangan baku F1-score macro (ddof = 1)" in d.value.columns
+    )
+    assert len(df_ms) == 3
+    df_wil = next(
+        d.value for d in at.dataframe if "A menang / B menang / seri" in d.value.columns
+    )
     assert len(df_wil) == 3
 
 
@@ -67,13 +75,23 @@ def test_halaman_4_tombol_8_contoh_dan_daftar_salah_klasifikasi(artefak: Artefak
     at.run()
     assert not at.exception
     assert at.title[0].value == "Analisis Kesalahan dan Grad-CAM"
-    # Tabel daftar salah klasifikasi + tabel info Grad-CAM citra salah terpilih
-    assert len(at.dataframe) == 2
+    assert len(at.tabs) == 2
+    # Hanya 1 tabel ringkas daftar salah klasifikasi (tabel info duplikat dihapus)
+    assert len(at.dataframe) == 1
+    assert list(at.dataframe[0].value.columns) == [
+        "Indeks manifest",
+        "Berkas",
+        "Label asli",
+        "Grid Search",
+        "Random Search",
+        "Optuna (TPE)",
+    ]
 
     # Klik tombol "Muat 8 contoh laporan" dan pastikan urutannya persis sama dengan notebook
     at.button(key="tombol_muat_8_contoh").click().run()
     assert not at.exception
-    df_8 = at.dataframe[0].value
+    assert len(at.dataframe) == 2
+    df_8 = next(d.value for d in at.dataframe if "Urutan" in d.value.columns)
     harapan_indeks = [format_angka(int(i)) for i in indeks_contoh_laporan()]
     assert df_8["Indeks manifest"].tolist() == harapan_indeks
     assert df_8["Indeks manifest"].tolist() != sorted(harapan_indeks)

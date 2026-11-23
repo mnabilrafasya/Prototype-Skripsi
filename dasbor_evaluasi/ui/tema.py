@@ -1,4 +1,4 @@
-"""Tema, kerangka halaman, dan Mode Presentasi."""
+"""Tema dan kerangka halaman Streamlit."""
 
 from __future__ import annotations
 
@@ -6,64 +6,73 @@ import streamlit as st
 
 from core.konstanta import FOOTER, WARNA_AKSEN
 
-KUNCI_PRESENTASI = "mode_presentasi"
-
 _CSS_DASAR = f"""
-h1, h2, h3 {{ color: {WARNA_AKSEN}; }}
-.footer-skripsi {{ font-size: 0.75rem; color: #333333; margin-top: 2rem;
-  border-top: 1px solid #C8CDD3; padding-top: 0.5rem; }}
+.block-container {{
+  padding-top: 2rem;
+  padding-bottom: 2.5rem;
+  max-width: 1220px;
+}}
+h1 {{
+  color: {WARNA_AKSEN};
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin-bottom: 0.75rem;
+}}
+h2 {{
+  color: {WARNA_AKSEN};
+  font-weight: 600;
+  border-bottom: 1px solid #DCE2EA;
+  padding-bottom: 0.3rem;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+}}
+h3, h4 {{
+  color: {WARNA_AKSEN};
+  font-weight: 600;
+}}
+p, li {{
+  line-height: 1.55;
+}}
+button[data-baseweb="tab"] {{
+  font-weight: 600;
+  color: #333333;
+}}
+button[data-baseweb="tab"][aria-selected="true"] {{
+  color: {WARNA_AKSEN};
+}}
+[data-testid="stMetric"] {{
+  background-color: #F8FAFC;
+  border: 1px solid #DCE2EA;
+  border-radius: 6px;
+  padding: 0.7rem 0.9rem;
+}}
+[data-testid="stMetricLabel"] {{
+  color: #334155;
+}}
+[data-testid="stMetricValue"] {{
+  color: {WARNA_AKSEN};
+}}
+.footer-skripsi {{
+  font-size: 0.8rem;
+  color: #333333;
+  margin-top: 2.25rem;
+  border-top: 1px solid #C8CDD3;
+  padding-top: 0.6rem;
+}}
 """
-
-# Huruf diperbesar (20 px = 15 pt, >= 14 pt), kontras tinggi, dan sidebar disembunyikan.
-_CSS_PRESENTASI = """
-html, body { font-size: 20px !important; color: #111111 !important; background-color: #FFFFFF !important; }
-[data-testid="stMarkdownContainer"] p,
-[data-testid="stMarkdownContainer"] li,
-[data-testid="stTable"] td,
-[data-testid="stTable"] th,
-[data-testid="stCaptionContainer"],
-label { font-size: 20px !important; line-height: 1.5 !important; color: #111111 !important; }
-[data-testid="stSidebar"],
-[data-testid="stSidebarCollapsedControl"],
-[data-testid="collapsedControl"],
-[data-testid="stExpandSidebarButton"] { display: none !important; }
-.footer-skripsi { font-size: 1rem !important; color: #111111 !important; }
-"""
-
-
-def presentasi_aktif() -> bool:
-    """True bila Mode Presentasi menyala."""
-    return bool(st.session_state.get(KUNCI_PRESENTASI, False))
 
 
 def terapkan_tema() -> None:
-    """Suntikkan CSS tema (dan CSS Mode Presentasi bila aktif)."""
-    css = _CSS_DASAR + (_CSS_PRESENTASI if presentasi_aktif() else "")
-    st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)
-
-
-def _ubah_presentasi() -> None:
-    st.session_state[KUNCI_PRESENTASI] = not presentasi_aktif()
-
-
-def tombol_presentasi_sidebar() -> None:
-    """Tombol Mode Presentasi di sidebar (sidebar disembunyikan saat mode aktif)."""
-    st.sidebar.button("Mode Presentasi", on_click=_ubah_presentasi, key="tombol_presentasi")
+    """Suntikkan CSS tema halaman."""
+    st.markdown(f"<style>{_CSS_DASAR}</style>", unsafe_allow_html=True)
 
 
 def judul(teks: str) -> None:
-    """Siapkan tema, tombol Mode Presentasi di sidebar, dan judul halaman."""
+    """Header halaman: terapkan tema lalu tampilkan hanya judul halaman."""
     terapkan_tema()
-    tombol_presentasi_sidebar()
-    if presentasi_aktif():
-        from ui import sumber
-
-        sumber.hasil_tersimpan()
     st.title(teks)
 
 
 def footer() -> None:
-    """Footer kecil; di Mode Presentasi juga memuat tombol untuk keluar dari mode."""
+    """Footer kecil di bagian bawah halaman."""
     st.markdown(f'<div class="footer-skripsi">{FOOTER}</div>', unsafe_allow_html=True)
-    if presentasi_aktif():
-        st.button("Keluar dari Mode Presentasi", on_click=_ubah_presentasi, key="keluar_presentasi")

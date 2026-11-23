@@ -30,21 +30,28 @@ tema.judul("Ringkasan Penelitian")
 a = sumber.artefak()
 meta = a.meta
 
-st.subheader("Judul Skripsi")
-st.write(JUDUL_SKRIPSI)
-st.write("Program Studi Teknik Informatika, Universitas Sriwijaya, 2026.")
-
-st.subheader("Tujuan Penelitian")
-st.markdown("\n".join(f"{i}. {t}" for i, t in enumerate(TUJUAN_PENELITIAN, start=1)))
+with st.container(border=True):
+    st.markdown(f"### {JUDUL_SKRIPSI}")
+    st.write("Program Studi Teknik Informatika, Fakultas Ilmu Komputer, Universitas Sriwijaya, 2026.")
 
 st.subheader("Dataset dan Pembagiannya")
 st.write(f"Dataset: {SITASI_DATASET}")
 st.write(
-    "Kelas dan urutan indeks: "
+    "Kelas dan urutan indeks tetap: "
     + ", ".join(f"{i} {k}" for i, k in enumerate(KELAS))
     + "."
 )
+
 jumlah_uji = np.bincount(a.manifest["label"].to_numpy(), minlength=len(KELAS))
+total_uji = int(jumlah_uji.sum())
+total_dataset = JUMLAH_TRAINING + total_uji
+
+k1, k2, k3, k4 = st.columns(4)
+k1.metric("Data latih (80% Training)", format_angka(JUMLAH_LATIH))
+k2.metric("Data validasi (20% Training)", format_angka(JUMLAH_VALIDASI))
+k3.metric("Data uji (dipakai prototipe)", format_angka(total_uji))
+k4.metric("Total dataset", format_angka(total_dataset))
+
 tampilkan_tabel(
     pd.DataFrame(
         {
@@ -57,7 +64,7 @@ tampilkan_tabel(
             "Jumlah citra": [
                 format_angka(JUMLAH_LATIH),
                 format_angka(JUMLAH_VALIDASI),
-                format_angka(int(jumlah_uji.sum())),
+                format_angka(total_uji),
             ],
             "Keterangan": [
                 "Tidak ada di prototipe",
@@ -69,8 +76,8 @@ tampilkan_tabel(
         }
     )
 )
-st.write(
-    f"Folder Training dipecah stratified 80:20 dengan seed pembagian {meta.split_seed}. "
+st.caption(
+    f"Folder Training dipecah stratified 80:20 dengan SPLIT_SEED = {meta.split_seed}. "
     f"Seed pelatihan ulang konfigurasi terbaik: {meta.train_seed}. "
     "Prototipe hanya memakai data uji bawaan; tidak ada unggahan dataset."
 )
@@ -91,12 +98,16 @@ konfigurasi = pd.DataFrame(
     columns=["Metode", *(NAMA_KONFIGURASI.get(k, k) for k in kunci)],
 )
 tampilkan_tabel(konfigurasi)
-st.caption("Sumber: meta.json. Nilai ditampilkan dengan paling banyak 6 desimal.")
+st.caption("Sumber: meta.json. Nilai numerik ditampilkan dengan paling banyak 6 desimal.")
 
-st.subheader("Batasan Penelitian")
-st.markdown("\n".join(f"{i}. {t}" for i, t in enumerate(BATASAN_PENELITIAN, start=1)))
+with st.expander("Tujuan Penelitian (6 butir — BAB I 1.3)", expanded=False):
+    st.markdown("\n".join(f"{i}. {t}" for i, t in enumerate(TUJUAN_PENELITIAN, start=1)))
+
+with st.expander("Batasan Penelitian (6 butir — BAB I 1.5)", expanded=False):
+    st.markdown("\n".join(f"{i}. {t}" for i, t in enumerate(BATASAN_PENELITIAN, start=1)))
 
 st.subheader("Pernyataan")
-st.markdown(f"**{PERNYATAAN_PROTOTIPE}**")
+with st.container(border=True):
+    st.markdown(f"**{PERNYATAAN_PROTOTIPE}**")
 
 tema.footer()

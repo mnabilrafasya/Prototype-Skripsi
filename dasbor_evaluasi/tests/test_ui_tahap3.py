@@ -9,10 +9,10 @@ import numpy as np
 from streamlit.testing.v1 import AppTest
 
 from core.artifacts import Artefak
-from core.hasil import HasilBatch, WaktuModel, kumpulkan_info
-from core.konstanta import METODE
+from core.hasil import BERKAS_HASIL_BATCH, HasilBatch, WaktuModel, kumpulkan_info
+from core.konstanta import METODE, SITASI_DATASET
 from core.teks import BATASAN_PENELITIAN, JUDUL_SKRIPSI, PERNYATAAN_PROTOTIPE, TUJUAN_PENELITIAN
-from ui import sumber, tema
+from ui import sumber
 
 AKAR = Path(__file__).resolve().parents[1]
 
@@ -42,6 +42,13 @@ def test_core_tidak_mengimpor_streamlit() -> None:
                 assert simpul.module != "streamlit", p.name
 
 
+def test_streamlit_app_berjalan_normal() -> None:
+    at = AppTest.from_file(str(AKAR / "streamlit_app.py"), default_timeout=30)
+    at.run()
+    assert not at.exception
+    assert at.title[0].value == "Ringkasan Penelitian"
+
+
 def test_halaman_ringkasan_memuat_seluruh_unsur_fr15() -> None:
     at = AppTest.from_file(str(AKAR / "pages" / "1_Ringkasan.py"), default_timeout=30)
     at.run()
@@ -49,24 +56,15 @@ def test_halaman_ringkasan_memuat_seluruh_unsur_fr15() -> None:
     assert at.title[0].value == "Ringkasan Penelitian"
     semua_teks = "\n".join(e.value for e in [*at.markdown, *at.caption])
     assert JUDUL_SKRIPSI in semua_teks
+    assert SITASI_DATASET in semua_teks
     for t in TUJUAN_PENELITIAN:
         assert t in semua_teks
     for b in BATASAN_PENELITIAN:
         assert b in semua_teks
     assert PERNYATAAN_PROTOTIPE in semua_teks
     assert len(at.dataframe) == 2
-
-
-def test_mode_presentasi_mengubah_tabel_menjadi_st_table() -> None:
-    at = AppTest.from_file(str(AKAR / "pages" / "1_Ringkasan.py"), default_timeout=30)
-    at.run()
-    assert not at.exception
-    at.sidebar.button(key="tombol_presentasi").click().run()
-    assert not at.exception
-    assert at.session_state[tema.KUNCI_PRESENTASI] is True
-    assert len(at.table) == 2
-    at.button(key="keluar_presentasi").click().run()
-    assert at.session_state[tema.KUNCI_PRESENTASI] is False
+    assert len(at.expander) == 2
+    assert all(not e.proto.expanded for e in at.expander)
 
 
 def test_halaman_prediksi_batch_tanpa_dan_dengan_hasil(artefak: Artefak) -> None:
@@ -75,6 +73,8 @@ def test_halaman_prediksi_batch_tanpa_dan_dengan_hasil(artefak: Artefak) -> None
     assert not at.exception
     assert at.title[0].value == "Prediksi Batch"
     assert any("Belum ada hasil batch" in m.value for m in at.markdown)
+    assert len(at.expander) == 1
+    assert not at.expander[0].proto.expanded
 
     at.session_state[sumber.KUNCI_HASIL] = _buat_hasil_uji(artefak, np.arange(1600))
     at.session_state[sumber.KUNCI_SUMBER_HASIL] = "dijalankan pada sesi ini"
@@ -82,11 +82,27 @@ def test_halaman_prediksi_batch_tanpa_dan_dengan_hasil(artefak: Artefak) -> None
     assert not at.exception
     assert len(at.dataframe) == 2  # tabel waktu inferensi + tabel prediksi per citra
     assert len(at.dataframe[1].value) == 1600
+    assert len(at.dataframe[1].value.columns) == 11
+    assert at.checkbox[0].value is False
 
     # Aktifkan filter "Hanya yang salah"
     at.checkbox[0].check().run()
     assert not at.exception
     assert 0 < len(at.dataframe[1].value) < 1600
+
+
+def test_tombol_muat_hasil_tersimpan_di_halaman_prediksi_batch() -> None:
+    at = AppTest.from_file(str(AKAR / "pages" / "2_Prediksi_Batch.py"), default_timeout=30)
+    at.run()
+    assert not at.exception
+    assert sumber.KUNCI_HASIL not in at.session_state
+
+    at.button(key="muat_hasil_tersimpan").click().run()
+    assert not at.exception
+    hasil = at.session_state[sumber.KUNCI_HASIL]
+    assert hasil.penuh and hasil.semua_model
+    assert at.session_state[sumber.KUNCI_SUMBER_HASIL] == f"berkas {BERKAS_HASIL_BATCH}"
+    assert len(at.dataframe[1].value) == 1600
 
 
 def test_halaman_evaluasi_batch_penuh_sesuai_dan_parsial(artefak: Artefak) -> None:
@@ -100,7 +116,13 @@ def test_halaman_evaluasi_batch_penuh_sesuai_dan_parsial(artefak: Artefak) -> No
     at.run()
     assert not at.exception
     assert len(at.error) == 0
-    df_verif = at.dataframe[-1].value
+    assert len(at.tabs) == 3
+    # Ringkasan di atas, diikuti McNemar dan Verifikasi terhadap Laporan (sebelum tab detail model)
+    assert "F1-score macro" in at.dataframe[0].value.columns
+    assert "p-value (Holm)" in at.dataframe[1].value.columns
+    df_verif = next(
+        d.value for d in at.dataframe if "Prediksi berbeda dari manifest" in d.value.columns
+    )
     assert df_verif["Status"].tolist() == ["SESUAI", "SESUAI", "SESUAI"]
     assert df_verif["Prediksi berbeda dari manifest"].tolist() == ["0", "0", "0"]
 
@@ -113,12 +135,18 @@ def test_halaman_evaluasi_batch_penuh_sesuai_dan_parsial(artefak: Artefak) -> No
     assert len(at.info) == 2
 
 
-def test_mode_presentasi_memuat_hasil_batch_penuh_dan_fr13_aktif() -> None:
-    at = AppTest.from_file(str(AKAR / "pages" / "3_Evaluasi.py"), default_timeout=30)
-    at.session_state[tema.KUNCI_PRESENTASI] = True
-    at.run()
-    assert not at.exception
-    assert len(at.error) == 0
-    df_verif = at.table[-1].value
-    assert df_verif["Status"].tolist() == ["SESUAI", "SESUAI", "SESUAI"]
+def test_hasil_batch_penuh_tersimpan_valid_di_halaman_evaluasi() -> None:
+    at_batch = AppTest.from_file(str(AKAR / "pages" / "2_Prediksi_Batch.py"), default_timeout=30)
+    at_batch.run()
+    at_batch.button(key="muat_hasil_tersimpan").click().run()
+    hasil_penuh = at_batch.session_state[sumber.KUNCI_HASIL]
 
+    at_eval = AppTest.from_file(str(AKAR / "pages" / "3_Evaluasi.py"), default_timeout=30)
+    at_eval.session_state[sumber.KUNCI_HASIL] = hasil_penuh
+    at_eval.run()
+    assert not at_eval.exception
+    assert len(at_eval.error) == 0
+    df_verif = next(
+        d.value for d in at_eval.dataframe if "Prediksi berbeda dari manifest" in d.value.columns
+    )
+    assert df_verif["Status"].tolist() == ["SESUAI", "SESUAI", "SESUAI"]

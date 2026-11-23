@@ -12,9 +12,15 @@ import streamlit as st
 
 from core.formatting import format_angka, format_metrik
 from core.hasil import HasilBatch
-from core.konstanta import KELAS, METODE, NAMA_METODE, WARNA_AKSEN, WARNA_METODE
+from core.konstanta import (
+    KELAS,
+    METODE,
+    N_STARTUP_OPTUNA,
+    NAMA_METODE,
+    WARNA_AKSEN,
+    WARNA_METODE,
+)
 from core.metrics import MetrikModel
-from ui import tema
 
 
 def subjudul(hasil: HasilBatch) -> str:
@@ -29,16 +35,13 @@ def penanda_metode(metode: str) -> str:
 
 
 def tampilkan_tabel(df: pd.DataFrame, tinggi: int | None = None) -> None:
-    """Tampilkan tabel string. Mode Presentasi memakai tabel HTML agar huruf ikut membesar."""
-    if tema.presentasi_aktif() and tinggi is None:
-        st.table(df, hide_index=True)
-    else:
-        st.dataframe(df, hide_index=True, width="stretch", height=tinggi or "auto")
+    """Tampilkan tabel berformat Indonesia selebar wadah."""
+    st.dataframe(df, hide_index=True, width="stretch", height=tinggi or "auto")
 
 
 def peta_panas(matriks: np.ndarray, metode: str, hasil: HasilBatch) -> go.Figure:
     """Peta panas confusion matrix (angka di sel); skala satu warna aksen."""
-    ukuran = 18 if tema.presentasi_aktif() else 13
+    ukuran = 13
     teks = [[format_angka(int(v)) for v in baris] for baris in matriks]
     fig = go.Figure(
         go.Heatmap(
@@ -73,7 +76,7 @@ def grafik_perbandingan_metrik(
     metrik: dict[str, MetrikModel], hasil: HasilBatch
 ) -> go.Figure:
     """Grafik batang perbandingan akurasi, F1-score macro, dan F1-score per kelas."""
-    ukuran = 17 if tema.presentasi_aktif() else 12
+    ukuran = 12
     kategori = ["Akurasi", "F1-score macro", *(f"F1 {k}" for k in KELAS)]
     fig = go.Figure()
     for m, km in metrik.items():
@@ -118,7 +121,7 @@ def grafik_perbandingan_metrik(
 
 def grafik_konvergensi(trial: dict[str, pd.DataFrame]) -> go.Figure:
     """Kurva konvergensi (best_so_far) ketiga metode dalam satu grafik (FR-11)."""
-    ukuran = 17 if tema.presentasi_aktif() else 12
+    ukuran = 12
     n_trial = len(next(iter(trial.values())))
     simbol = {"grid_search": "circle", "random_search": "square", "optuna_tpe": "triangle-up"}
     fig = go.Figure()
@@ -161,10 +164,10 @@ def grafik_konvergensi(trial: dict[str, pd.DataFrame]) -> go.Figure:
 
 
 def grafik_sebaran_trial(
-    trial: dict[str, pd.DataFrame], n_startup_optuna: int = 10
+    trial: dict[str, pd.DataFrame], n_startup_optuna: int = N_STARTUP_OPTUNA
 ) -> go.Figure:
     """Sebaran F1-score validasi per trial dan best_so_far untuk ketiga metode (FR-11)."""
-    ukuran = 16 if tema.presentasi_aktif() else 12
+    ukuran = 12
     n_trial = len(next(iter(trial.values())))
     fig = make_subplots(
         rows=1,
@@ -241,12 +244,14 @@ def grafik_sebaran_trial(
 
 def grafik_multi_seed(multi_seed: pd.DataFrame, seeds: Sequence[int]) -> go.Figure:
     """F1-score macro per seed per metode dari multi_seed_hasil.csv (FR-12)."""
-    ukuran = 17 if tema.presentasi_aktif() else 12
+    ukuran = 12
     label_seed = [str(s) for s in seeds]
     fig = go.Figure()
+    semua_nilai: list[float] = []
     for m in METODE:
         sub = multi_seed[multi_seed["method"] == m].set_index("seed")
         nilai = [float(sub.loc[int(s), "f1_macro"]) for s in seeds]
+        semua_nilai.extend(nilai)
         teks = [format_metrik(v) for v in nilai]
         fig.add_trace(
             go.Bar(
@@ -262,6 +267,12 @@ def grafik_multi_seed(multi_seed: pd.DataFrame, seeds: Sequence[int]) -> go.Figu
                 ),
             )
         )
+    min_v, maks_v = min(semua_nilai), max(semua_nilai)
+    rentang = maks_v - min_v
+    margin_bawah = max(0.01, 0.25 * rentang)
+    margin_atas = max(0.015, 0.35 * rentang)
+    y_bawah = max(0.0, min_v - margin_bawah)
+    y_atas = min(1.0, maks_v + margin_atas)
     fig.update_layout(
         title=dict(
             text="F1-score Macro per Seed pada Setiap Metode",
@@ -273,7 +284,7 @@ def grafik_multi_seed(multi_seed: pd.DataFrame, seeds: Sequence[int]) -> go.Figu
             ),
         ),
         xaxis=dict(title="Seed pelatihan ulang (TRAIN_SEED)", type="category"),
-        yaxis=dict(title="F1-score macro data uji", range=[0.85, 0.96], tickformat=".4f"),
+        yaxis=dict(title="F1-score macro data uji", range=[y_bawah, y_atas], tickformat=".4f"),
         barmode="group",
         separators=",.",
         font=dict(size=ukuran, color="#111111"),
