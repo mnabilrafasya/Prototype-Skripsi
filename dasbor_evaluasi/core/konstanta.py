@@ -36,12 +36,14 @@ PASANGAN: Final[tuple[tuple[str, str], ...]] = (
     ("random_search", "optuna_tpe"),
 )
 
-# Sitasi dataset: persis entri Daftar Pustaka laporan (versi 2 dipakai penelitian).
-# Dikonfirmasi pengguna pada Tahap 2.
+# Sitasi dataset (keputusan B.3).
 SITASI_DATASET: Final[str] = (
-    "Masoud Nickparvar. (2026). Brain Tumor MRI Dataset (Version 2) [Data set]. "
+    "Nickparvar, M. (2026). Brain Tumor MRI Dataset (Version 2) [Data set]. "
     "Kaggle. https://doi.org/10.34740/KAGGLE/DSV/14832123"
 )
+
+# Jumlah trial awal acak Optuna (N_STARTUP_TRIALS di notebook sel 11; default TPESampler).
+N_STARTUP_OPTUNA: Final[int] = 10
 
 # Kriteria penerimaan FR-01: total parameter tiap model (EfficientNetB0 + head baru).
 JUMLAH_PARAMETER_MODEL: Final[int] = 4_336_512

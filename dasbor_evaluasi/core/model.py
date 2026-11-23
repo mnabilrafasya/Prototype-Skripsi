@@ -12,8 +12,7 @@ import torch
 from torch import nn
 from torchvision import models
 
-from core.artifacts import Artefak
-from core.konstanta import JUMLAH_PARAMETER_MODEL, KELAS, METODE
+from core.konstanta import JUMLAH_PARAMETER_MODEL, KELAS
 
 
 class ModelError(Exception):
@@ -62,16 +61,3 @@ def muat_model(jalur: Path, dropout_rate: float, dense_units: int) -> nn.Module:
             f"{jalur.name}: jumlah parameter {jumlah}, seharusnya {JUMLAH_PARAMETER_MODEL}"
         )
     return model.eval()
-
-
-def muat_semua_model(artefak: Artefak) -> dict[str, nn.Module]:
-    """Muat ketiga model dari artefak memakai konfigurasi di meta.json."""
-    hasil: dict[str, nn.Module] = {}
-    for metode in METODE:
-        konfig = artefak.meta.best_configs[metode]
-        hasil[metode] = muat_model(
-            artefak.bobot[metode],
-            float(konfig["dropout_rate"]),
-            int(konfig["dense_units"]),
-        )
-    return hasil

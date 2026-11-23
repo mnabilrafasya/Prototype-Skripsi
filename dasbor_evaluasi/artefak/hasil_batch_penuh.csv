@@ -1,4 +1,4 @@
-# tanggal: 2026-11-18T14:54:59+07:00
+# tanggal: 2026-11-23T11:27:11+07:00
 # perangkat: Intel64 Family 6 Model 142 Stepping 9, GenuineIntel; Windows 11; CPU; threads 2
 # versi_python: 3.12.5
 # versi_torch: 2.15.0+cpu
@@ -6,9 +6,9 @@
 # ukuran_batch: 16
 # sampel: semua data uji
 # metode: grid_search,random_search,optuna_tpe
-# waktu.grid_search: 1600,110.83980149999843,99.52520770000228
-# waktu.random_search: 1600,108.92099190000044,97.36118699998951
-# waktu.optuna_tpe: 1600,85.72317309999926,76.61466020001717
+# waktu.grid_search: 1600,108.69500330003211,97.95274900010554
+# waktu.random_search: 1600,112.66834750003181,101.92566259967862
+# waktu.optuna_tpe: 1600,118.73742309998488,107.31431109964615
 berkas,label_asli,prediksi_grid_search,probabilitas_grid_search,status_grid_search,prediksi_random_search,probabilitas_random_search,status_random_search,prediksi_optuna_tpe,probabilitas_optuna_tpe,status_optuna_tpe
 glioma/Te-gl_16.jpg,glioma,glioma,0.986100137,benar,glioma,0.674852073,benar,glioma,0.978652477,benar
 glioma/Te-gl_87.jpg,glioma,meningioma,0.926097095,salah,meningioma,0.995356977,salah,meningioma,0.965709865,salah

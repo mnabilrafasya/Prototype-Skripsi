@@ -21,7 +21,14 @@ from matplotlib.ticker import FuncFormatter  # noqa: E402
 
 from core.formatting import format_angka, format_metrik  # noqa: E402
 from core.gradcam import HasilGradCAM  # noqa: E402
-from core.konstanta import KELAS, METODE, NAMA_METODE, WARNA_AKSEN, WARNA_METODE  # noqa: E402
+from core.konstanta import (  # noqa: E402
+    KELAS,
+    METODE,
+    N_STARTUP_OPTUNA,
+    NAMA_METODE,
+    WARNA_AKSEN,
+    WARNA_METODE,
+)
 from core.metrics import MetrikModel  # noqa: E402
 
 PETA_WARNA = LinearSegmentedColormap.from_list("aksen", ["#FFFFFF", WARNA_AKSEN])
@@ -221,7 +228,9 @@ def kurva_konvergensi_png(
 
 
 def sebaran_f1_trial_png(
-    trial: dict[str, pd.DataFrame], n_startup_optuna: int = 10, ukuran_font: int = 10
+    trial: dict[str, pd.DataFrame],
+    n_startup_optuna: int = N_STARTUP_OPTUNA,
+    ukuran_font: int = 10,
 ) -> bytes:
     """Gambar PNG sebaran F1-score macro validasi per trial untuk ketiga metode."""
     fig, axes = plt.subplots(1, 3, figsize=(15.0, 4.8), dpi=150, sharey=True)
@@ -279,9 +288,11 @@ def multi_seed_f1_png(
         label_seed = [str(s) for s in seeds]
         x = np.arange(len(seeds))
         lebar = 0.25
+        semua_nilai: list[float] = []
         for idx_m, m in enumerate(METODE):
             sub = multi_seed[multi_seed["method"] == m].set_index("seed")
             nilai = [float(sub.loc[int(s), "f1_macro"]) for s in seeds]
+            semua_nilai.extend(nilai)
             ax.bar(
                 x + (idx_m - 1) * lebar,
                 nilai,
@@ -289,10 +300,13 @@ def multi_seed_f1_png(
                 label=NAMA_METODE[m],
                 color=WARNA_METODE[m],
             )
+        min_v, maks_v = min(semua_nilai), max(semua_nilai)
+        rentang = maks_v - min_v
+        margin = max(0.01, 0.25 * rentang)
         ax.set_xticks(x, labels=label_seed, fontsize=ukuran_font)
         ax.set_xlabel("Seed pelatihan ulang (TRAIN_SEED)", fontsize=ukuran_font)
         ax.set_ylabel("F1-score macro data uji", fontsize=ukuran_font)
-        ax.set_ylim(0.85, 0.96)
+        ax.set_ylim(max(0.0, min_v - margin), min(1.0, maks_v + margin))
         ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: format_metrik(v)))
         ax.grid(axis="y", alpha=0.3)
         ax.legend(fontsize=ukuran_font - 1)

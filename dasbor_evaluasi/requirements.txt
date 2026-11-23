@@ -1,5 +1,5 @@
 # Seluruh nomor versi di bawah ini diambil langsung dari `pip freeze` pada .venv
-# lokal (Python 3.12.5, Windows 11) dan TERVERIFIKASI lewat 200 tes pytest lokal.
+# lokal (Python 3.12.5, Windows 11) dan TERVERIFIKASI lewat 201 tes pytest lokal.
 # Catatan untuk deploy ke Streamlit Community Cloud (Linux):
 # - Resolusi `--extra-index-url` dan wheel Linux x86_64 di Streamlit Community Cloud:
 #   TIDAK DIVERIFIKASI (belum dijalankan di server Streamlit Community Cloud).
